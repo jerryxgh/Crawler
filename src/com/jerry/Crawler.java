@@ -10,6 +10,8 @@ import java.util.concurrent.Executors;
 
 public class Crawler implements Runnable {
 	private static boolean hasBegun = false;
+	private static int count = 0;
+	private final int threadId = count++;
 
 	synchronized boolean  hasBegun() {
 		return Crawler.hasBegun;
@@ -30,7 +32,9 @@ public class Crawler implements Runnable {
 		LinkFilter filter = new LinkFilter() {
 			//提取以 http://www.java2s.com/Code 开头的链接
 			public boolean accept(String url) {
-				if(url.startsWith("http://www.java2s.com/Code"))
+				if(url.startsWith("http://www.java2s.com/Code") 
+						&& !url.startsWith("http://www.java2s.com/Code/JavaDownload")
+						&& !url.endsWith("zip"))
 					return true;
 				else
 					return false;
@@ -39,12 +43,11 @@ public class Crawler implements Runnable {
 		
 		if (!this.hasBegun()) {
 			this.begin();
-		}
-
+		}		
 		//循环条件：待抓取的链接不空时
-		for (String visitUrl = LinkDB.unVisitedUrlDeQueue();
-				visitUrl != null; visitUrl = LinkDB.unVisitedUrlDeQueue()) {
-			HtmlParser parser;
+		for (String visitUrl = LinkDB.unVisitedUrlDeQueue(); true; visitUrl = LinkDB.unVisitedUrlDeQueue()) {
+			if (visitUrl == null) continue;	
+			HtmlParser parser = null;
 			try {
 				parser = new HtmlParser(visitUrl, filter);
 			} catch (IOException e) {
@@ -74,11 +77,11 @@ public class Crawler implements Runnable {
 	 * @param url 页面对应的绝对地址
 	 * @param parser 页面的解析器
 	 */
-	synchronized public void saveCode(String url, HtmlParser parser) {
+	public void saveCode(String url, HtmlParser parser) {
 		// 页面中没有代码，返回
 		System.out.println("正在访问的链接: " + url);
 		if (parser.getCodeTitle() == null) {
-			System.out.println("该链接没有代码。。。");
+			System.out.println("线程" + threadId + ": 该链接没有代码。。。");
 			return;
 		}
 
@@ -115,7 +118,7 @@ public class Crawler implements Runnable {
 	//main 方法入口
 	public static void main(String[]args) {
 		ExecutorService exec = Executors.newCachedThreadPool();
-		for (int i = 0; i < 20; ++i) {
+		for (int i = 0; i < 10; ++i) {
 			exec.execute(new Crawler());
 		}
 		exec.shutdown();
