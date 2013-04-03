@@ -1,4 +1,4 @@
 Crawler
 =======
 
-A simple Crawler in Java
+A Web Crawler in Java.
