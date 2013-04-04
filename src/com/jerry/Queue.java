@@ -3,7 +3,7 @@ package com.jerry;
 import java.util.LinkedList;
 
 /**
- * 数据结构队列
+ * 队列
  */
 public class Queue<T> {
 
