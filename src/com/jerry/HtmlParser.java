@@ -21,7 +21,7 @@ public class HtmlParser {
     public HtmlParser(String url, LinkFilter filter) throws IOException {
         this.url = url;
         this.filter = filter;
-        this.doc = Jsoup.connect(this.url).get();
+        this.doc = Jsoup.connect(this.url).timeout(3000).get();
     }
 
     /**
