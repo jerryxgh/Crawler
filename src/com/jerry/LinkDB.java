@@ -1,30 +1,45 @@
 package com.jerry;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.swing.text.StyledEditorKit.BoldAction;
+
+import org.apache.log4j.Logger;
+
 /**
  * 用来保存已经访问过url、正在访问的url、待访问的url
  */
 public class LinkDB {
-	private final String visitedNumFileName = "visitedNum.txt";
-	private final String unVisitedUrlFileName = "un_visited.txt";
-	private final String bloomFilterFileName = "bloom_filter.bin";
+	private Logger log = Logger.getLogger(LinkDB.class);
+	
+	private final String sessionDir = "crawler_session/";
+	private final String visitedNumFileName = sessionDir + "visitedNum.txt";
+	private final String unVisitedUrlFileName = sessionDir + "un_visited.txt";
+	private final String bloomFilterFileName = sessionDir + "bloom_filter.bin";
 	private BloomFilter<String> bloomFilter = null; // 记录已经访问过的url
 	private Queue<String> unVisitedUrl = null; // 待访问的url集合
 	private List<String> bufferedUrl = null; // 缓存的url集合
-//	private List<String> visitingUrl = null; // 正在访问的url集合
-	private int bufferSize = 10000;
+	private int bufferSize = 100;
 	private long visitedNum = 0;
+	private boolean useCashOrNot = true;
+	
+//	private List<String> visitingUrl = null; // 正在访问的url集合
+//	private final String visitedUrlFileName = "visited.txt";
+//	RandomAccessFile visitedUrlFile;
 
 	LinkDB() {
 		// 成员变量初始化
 		bloomFilter = new BloomFilter<String>();
 		unVisitedUrl = new Queue<String>();
 		bufferedUrl = new ArrayList<String>();
+		if (!(new File(sessionDir).exists())) {
+			new File(sessionDir).mkdirs();
+		}
 //		visitingUrl = new ArrayList<String>();
 //		try {
 //			visitedUrlFile = new RandomAccessFile(visitedUrlFileName, "rw");
@@ -60,14 +75,18 @@ public class LinkDB {
 	 */
 	synchronized public String unVisitedUrlDeQueue() {
 		String result = null;
-		if (unVisitedUrl.isEmpty()) {
-			JdbcUtils.getbufferedUrl(unVisitedUrl, bufferSize);
+		while (true) {
+			if (!unVisitedUrl.isEmpty())
+				while (bloomFilter.contains(result = unVisitedUrl.deQueue()))
+					;
+			if (result == null) {
+				JdbcUtils.getbufferedUrl(unVisitedUrl, bufferSize);
+				if (unVisitedUrl.isEmpty()) // 数据库中已经没有url，返回null
+					break;
+			} else { // 得到url，返回
+				break;
+			}
 		}
-		if (!unVisitedUrl.isEmpty()) {
-			while (bloomFilter.contains(result = unVisitedUrl.deQueue()))
-				;
-		}
-//		if (result != null) visitingUrl.add(result);
 		return result;
 	}
 
@@ -77,10 +96,22 @@ public class LinkDB {
 	 */
 	synchronized public void addUnvisitedUrl(String url) {
 		if (url != null && !url.trim().equals("") && !bloomFilter.contains(url)) {
-			bufferedUrl.add(url);
+			unVisitedUrl.enQueue(url);
 		}
-		if (bufferedUrl.size() > bufferSize)
-			JdbcUtils.savebufferedUrl(bufferedUrl);
+	}
+	
+	synchronized public void addBufferedUrl(String url) {
+		if (useCashOrNot) {
+			if (url != null && !url.trim().equals("") && !bloomFilter.contains(url)) {
+				bufferedUrl.add(url);
+			}
+			if (bufferedUrl.size() > bufferSize || unVisitedUrl.isEmpty())
+				JdbcUtils.savebufferedUrl(bufferedUrl);
+		} else {
+			if (url != null && !url.trim().equals("") && !bloomFilter.contains(url)) {
+				unVisitedUrl.enQueue(url);
+			}		
+		}
 	}
 
 	/**
@@ -92,7 +123,7 @@ public class LinkDB {
 	}
 	
 	/**
-	 * 将BloomFilter保存到磁盘上，并关闭visitedUrlFile。
+	 * 将抓取状态信息保存到磁盘上
 	 */
 	synchronized public void close() {
     	saveBloomFilter();
@@ -169,7 +200,7 @@ public class LinkDB {
 		RandomAccessFile unVisitedUrlFile = null;
 		try {
 			unVisitedUrlFile = new RandomAccessFile(unVisitedUrlFileName, "rw");
-    		// 将待抓取的和正在抓取的url存储起来
+    		// 将待抓取的url存储起来
 			String tmp;
     		while(!unVisitedUrl.isEmpty() && (tmp = unVisitedUrl.deQueue()) != null) {
     			unVisitedUrlFile.writeBytes(tmp);
@@ -200,7 +231,8 @@ public class LinkDB {
 	}
 	
 	public static void main(String[] args) {
-		LinkDB test = new LinkDB();
-		test.saveVisitedNum();
+		Logger log = Logger.getLogger(LinkDB.class);
+		log.info("hello,I'm a log");
+		log.error("error");
 	}
 }

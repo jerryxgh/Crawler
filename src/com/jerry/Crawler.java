@@ -10,7 +10,11 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import org.apache.log4j.Logger;
+
 public class Crawler implements Runnable {
+	Logger log = Logger.getLogger(Crawler.class);
+	
 	private static int count = 0;
 	private final int threadId = count++;
 	private LinkDB linkDB;
@@ -43,23 +47,19 @@ public class Crawler implements Runnable {
 			try {
 				parser = new HtmlParser(visitUrl, filter);
 			} catch (IOException e) {
-//				linkDB.addUnvisitedUrl(visitUrl);
-//				System.out.println(visitUrl + "无法到达!");
+				log.error(e.getMessage());
 				continue;
 			}
-//			System.out.println("您好，我是线程：" + this.threadId);
-//			System.out.println(visitUrl);
-//			System.out.println(parser.getTitle());
-//			System.out.println(parser.getText());
 			contentDB.save(linkDB.getVisitedUrlNum(), parser.getText());
 			linkDB.addVisitedUrl(visitUrl); // 该 url 放入到已访问的 URL 中	
 			List<String> links = parser.getLinks(); // 提取出网页中的 URL
 			for(String link : links) { // 新的未访问的 URL 入队
-				linkDB.addUnvisitedUrl(link);
+//				long startTime = System.nanoTime();
+				linkDB.addBufferedUrl(link);
+//				System.out.println("线程 " + threadId + " linkDB.addUnvisitedUrl(link)耗时：" + (System.nanoTime() - startTime));
 			}
 		}
 		--count;
-		System.out.println("线程 " + threadId + " 已经退出，还有" + count + "个线程正在运行...");
 	}
 
 	/**
@@ -68,9 +68,15 @@ public class Crawler implements Runnable {
 	 */
 	public static void main(String[] args) {
 		// 初始化开始抓取集合
-		if (args.length == 1) System.out.println("Using default init urls：[http://www.hhu.edu.cn]");
-		if (args.length > 2 || args.length < 1) System.out.println("Usage: Crawler threadNumber [init file]");
 		LinkDB linkDB = new LinkDB();
+		if (args.length == 1) {
+			System.out.println("Using default init urls：[http://www.hhu.edu.cn]");
+			linkDB.addUnvisitedUrl("http://www.hhu.edu.cn");
+		}
+		if (args.length > 2 || args.length < 1) {
+			System.out.println("Usage: Crawler threadNumber [init file]");
+			return;
+		}
 		if (args.length == 2) {
 			try {
 				BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(args[1])));
@@ -78,16 +84,16 @@ public class Crawler implements Runnable {
 				while((tmp = br.readLine()) != null)
 					linkDB.addUnvisitedUrl(tmp);
 			} catch (IOException e) {
-				System.out.println("File " + args[1] + "doesn't exists, using default init urls：[http://www.hhu.edu.cn]");
+				System.out.println("File " + args[1] + " doesn't exists, using default init urls：[http://www.hhu.edu.cn]");
+				linkDB.addUnvisitedUrl("http://www.hhu.edu.cn");
 			}
-		} else {
-			linkDB.addUnvisitedUrl("http://www.hhu.edu.cn");
 		}
 		
-		int theradsNum = Integer.parseInt(args[0]);
-		ContentDB contentDB = new ContentDB("/user/jerry/crawler/", "yyyyMMddHH");
-		ExecutorService exec = Executors.newFixedThreadPool(theradsNum);
-		for (int i = 0; i < theradsNum; ++i) {
+		int threadNum = 2;
+		if (args.length >= 1) threadNum = Integer.parseInt(args[0]);
+		ContentDB contentDB = new ContentDB("/user/jerry/crawler/", "yyyyMMddHH");		// TODO 实验
+		ExecutorService exec = Executors.newFixedThreadPool(threadNum);
+		for (int i = 0; i < threadNum; ++i) {
 			exec.submit(new Crawler(linkDB, contentDB));
 		}
 		System.out.println("您好，正在努力为您抓取网页！输入 exit 退出：");
