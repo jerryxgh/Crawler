@@ -1,4 +1,4 @@
-package com.jerry;
+package com.jerry.crawler;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -63,19 +63,24 @@ public class HtmlParser {
      * @param args
      */
     public static void main(String[] args) {
-        String url = " http://hhuedf.hhu.edu.cn/index.asp";
+//        String url = " http://hhuedf.hhu.edu.cn/index.asp";
 //        String url = "http://www.hhu.edu.cn";
+    	String url = "http://www.facebook.com";
+//    	String url = "http://www.baidu.com";
         HtmlParser parser = null;
         try {
             parser = new HtmlParser(url, null);
         } catch (IOException e) {
             e.printStackTrace();
+
         }
-        System.out.println("链接数量: " + parser.getLinks().size());
-        for (int i = 0; i < parser.getLinks().size(); ++i) {
-        	System.out.println(i + ": " + parser.getLinks().get(i));
-        }
-        System.out.println("title: " + parser.getTitle());
-        System.out.println("text: " + parser.getText());
+        System.out.println("hello");
+        return;
+//        System.out.println("链接数量: " + parser.getLinks().size());
+//        for (int i = 0; i < parser.getLinks().size(); ++i) {
+//        	System.out.println(i + ": " + parser.getLinks().get(i));
+//        }
+//        System.out.println("title: " + parser.getTitle());
+//        System.out.println("text: " + parser.getText());
     }
 }

@@ -1,4 +1,4 @@
-package com.jerry;
+package com.jerry.crawler;
 
 import java.util.LinkedList;
 

@@ -1,4 +1,4 @@
-package com.jerry;
+package com.jerry.crawler;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.FileNotFoundException;
@@ -9,8 +9,13 @@ import java.security.NoSuchAlgorithmException;
 import java.util.BitSet;
 import java.util.Random;
 
+import org.apache.log4j.Logger;
+
+import com.jerry.hmachash.SHA1;
+
 class BloomFilter<E> {
-    
+	private Logger log = Logger.getLogger(Crawler.class);
+	
     private BitSet bf;
     private int bitArraySize = 100000000;
     private int numHashFunc = 6;
@@ -47,15 +52,17 @@ class BloomFilter<E> {
         
         long seed = 0;
         byte[] digest;
-        try {
-            MessageDigest md = MessageDigest.getInstance("MD5");
-            md.update(obj.toString().getBytes());
-            digest = md.digest();
+//        try {
+//            MessageDigest md = MessageDigest.getInstance("MD5");
+//            md.update(obj.toString().getBytes());
+//            digest = md.digest();
+        	SHA1 sha1 = new SHA1();
+        	digest = sha1.getDigestOfBytes(obj.toString().getBytes());
             
             for (int i = 0; i < 6; i++) { 
                 seed = seed | (((long)digest[i] & 0xFF))<<(8*i);
             }
-        } catch (NoSuchAlgorithmException  e) {}
+//        } catch (NoSuchAlgorithmException  e) {}
         
         Random gen = new Random(seed);
         
@@ -103,26 +110,34 @@ class BloomFilter<E> {
      * 测试方法
      */
     public static void main(String[] args) {
-    	String file = "BloomFilter.bitset";
-    	RandomAccessFile raf = null;
     	BloomFilter<String> bf = new BloomFilter<String>();
-//    	bf.add(file);
+    	for(int i = 0; i < 1; ++i) {
+    	long startTime = System.nanoTime();
+    	bf.add("hello" + i);
+    	bf.log.info(bf.contains("hello" + i));
+    	bf.log.info(System.nanoTime() - startTime);
+    	}
     	
-    	try {
-			raf = new RandomAccessFile(file, "rw");
-		} catch (FileNotFoundException e) {
-			System.out.println("文件" + file + "不存在！");
-			e.printStackTrace();
-		}
-    	
-    	try {
-    		bf.write(raf);
-    		bf.readFields(raf);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		
-		System.out.println(bf.contains(file));
-		System.out.println(bf.contains(file + "abcdefg1"));
+//    	String file = "BloomFilter.bitset";
+//    	RandomAccessFile raf = null;
+//    	BloomFilter<String> bf = new BloomFilter<String>();
+////    	bf.add(file);
+//    	
+//    	try {
+//			raf = new RandomAccessFile(file, "rw");
+//		} catch (FileNotFoundException e) {
+//			System.out.println("文件" + file + "不存在！");
+//			e.printStackTrace();
+//		}
+//    	
+//    	try {
+//    		bf.write(raf);
+//    		bf.readFields(raf);
+//		} catch (IOException e) {
+//			e.printStackTrace();
+//		}
+//		
+//		System.out.println(bf.contains(file));
+//		System.out.println(bf.contains(file + "abcdefg1"));
 	}
 }

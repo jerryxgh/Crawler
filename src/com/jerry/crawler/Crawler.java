@@ -1,4 +1,4 @@
-package com.jerry;
+package com.jerry.crawler;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -41,18 +41,24 @@ public class Crawler implements Runnable {
 	public void run() {
 		String visitUrl;
 		while (!Thread.interrupted()) { // 始终循环
+			log.info("Thread:" + threadId + ":" +  1);
 			visitUrl = linkDB.unVisitedUrlDeQueue();
+			log.info("Thread:" + threadId + ":" +  2);
+			linkDB.addVisitedUrl(visitUrl); // 该 url 放入到已访问的 URL 中
 			if (visitUrl == null) continue;	
 			HtmlParser parser = null;
 			try {
+				log.info("Thread:" + threadId + ":" +  3);
 				parser = new HtmlParser(visitUrl, filter);
 			} catch (IOException e) {
 				log.error(e.getMessage());
 				continue;
 			}
+			log.info("Thread:" + threadId + ":" +  4);
 			contentDB.save(linkDB.getVisitedUrlNum(), parser.getText());
-			linkDB.addVisitedUrl(visitUrl); // 该 url 放入到已访问的 URL 中	
+			log.info("Thread:" + threadId + ":" +  5);
 			List<String> links = parser.getLinks(); // 提取出网页中的 URL
+			log.info("Thread:" + threadId + ":" +  6);
 			for(String link : links) { // 新的未访问的 URL 入队
 //				long startTime = System.nanoTime();
 				linkDB.addBufferedUrl(link);
@@ -102,6 +108,7 @@ public class Crawler implements Runnable {
 		try {
 			while((signal = stdin.readLine()) != null && !signal.equals("exit")) {
 				System.out.println(signal);
+				System.out.println("正在运行的线程数：" + count);
 			}
 			System.out.println("您好，正在退出，请稍后...！");
 			exec.shutdownNow();
